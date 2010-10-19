@@ -1,3 +1,31 @@
+/**
+ * @file libpola.c
+ * @author Benjamin Loos (loos.benjamin@gmail.com)
+ * @version 1.0
+ * 
+ * This library replaces open and opendir functions to implement the POLA
+ * principles
+ * Copyright (C) 2010 Benjamin Loos
+ * 
+ * @section LICENSE
+ * This file is part of the POLA library.
+
+ * The POLA library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+
 #include "libpola.h"
 
 extern int errno;
@@ -29,11 +57,11 @@ unsigned int compare_string (char* string1, char* string2)
  */
 const char* strip_brackets (const char* string)
 {
-	// only if string is encapsuled by brackets
+    // only if string is encapsuled by brackets
     if (string[0] != '<' || string[strlen(string)-1] != '>')
         return string;
 
-	// allocate space
+    // allocate space
     char* res = malloc((strlen(string)-1)*sizeof(char));
     memset(res, '\0', strlen(string)-1);
     // copy string
@@ -79,7 +107,7 @@ int my_open_interactive (const char* pathname, int flags,
     char mode;
     char* realp = realpath(pathname, NULL);
 
-	// read only
+    // read only
     if ((flags & FLAGS) == O_RDONLY)
     {
 		if (!accept_reads)
@@ -123,7 +151,7 @@ int my_open_interactive (const char* pathname, int flags,
 
     free(realp);
 
-	// if we have asked a question
+    // if we have asked a question
     if (ask)
     {
         memset(a, '\0', 16);
@@ -133,27 +161,27 @@ int my_open_interactive (const char* pathname, int flags,
         sscanf(a, "%c", &b);
 		memset(a, '\0', 16);
 
-		// accept all reads or writes
+        // accept all reads or writes
         if (b == 'r' || b == 'R')
         {
-			switch (mode)
-			{
-				case 'r':
-					accept_reads = 1;
-					break;
-			    case 'w':
-			    	accept_writes = 1;
-			    	break;
-			    case 'a':
-			    	accept_writes = 1;
-			    	accept_reads = 1;
-		    }
-		}
+            switch (mode)
+            {
+                case 'r':
+                    accept_reads = 1;
+                    break;
+                case 'w':
+                    accept_writes = 1;
+                    break;
+                case 'a':
+                    accept_writes = 1;
+                    accept_reads = 1;
+            }
+        }
 
-		// access denied
+        // access denied
         if (b != 'y' && b != 'Y' && b != 'r' && b != 'R')
         {
-			// write to syslog
+	    // write to syslog
             record_error(pathname);
             // set errno so the calling application knows what happened
             errno = EACCES;
@@ -192,22 +220,22 @@ int my_open (const char* pathname, int flags,
 	// read only
     if ((flags & FLAGS) == O_RDONLY)
     {
-		// check if filename is found in arguments
+        // check if filename is found in arguments
         if (strstr(cmd, pathname) != NULL)
-        	// call original open()
-            return libc_open(pathname, flags);
+        // call original open()
+        return libc_open(pathname, flags);
     }
     // write access
     else if ((flags & FLAGS) == O_RDWR || (flags & FLAGS) == O_WRONLY)
     {
-		// check for brackets
+        // check for brackets
         if ((pathname[0] == '<' && pathname[strlen(pathname)-1] == '>')
-        	// or filename in arguments
+            // or filename in arguments
             || (strstr(allowed_writes, pathname) != NULL))
         {
             if (pathname[0] == '<')
             {
-				// strip brackets
+                // strip brackets
                 const char* file = strip_brackets(pathname);
                 // call original open()
                 return libc_open(file, flags);
@@ -233,11 +261,11 @@ int my_open (const char* pathname, int flags,
  */
 int open (const char* pathname, int flags, ...)
 {
-	// back up original open()
+    // back up original open()
     int (*libc_open)(const char *name, int flags);
     *(void **)(&libc_open) = dlsym(RTLD_NEXT, "open");
 
-	// check if interactive mode was requested
+    // check if interactive mode was requested
     char* interactive = getenv("INTERACTIVE");
     if (*interactive == '1')
     {
